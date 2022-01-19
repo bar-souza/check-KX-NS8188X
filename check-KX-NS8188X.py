@@ -49,6 +49,7 @@ parser_parametros = argparse.ArgumentParser(description='Verificação de Link S
 parser_parametros.add_argument('-H','--host', action='store',dest='pHost',required=True,help='Endereço do equipamento KX-NS8188X a ser monitorado')
 parser_parametros.add_argument('-U','--user', action='store',dest='pUser',required=True,help='Usuário do equipamento KX-NS8188X a ser monitorado')
 parser_parametros.add_argument('-P','--password', action='store',dest='pPassword',required=True,help='Password do equipamento KX-NS8188X a ser monitorado')
+parser_parametros.add_argument('-C','--comando', action='store',dest='pComando',required=False, default='linestatus', help='Comando a ser executado. Disponíveis: systemstatus,linestatus, siteinfo')
 parser_parametros.add_argument('--debug',action='store_true',required=False,help='Habilida o traceback do Python para debugar erros.')
 parametros = parser_parametros.parse_args()
 
@@ -80,7 +81,6 @@ response = s.get(url+'/WebMC/gridForm/CommandCall/', params=params, verify=False
 s.get(url+'/WebMC/users/logout', verify=False)
 
 r1 = json.loads(response.text)
-
 if parametros.debug:
     print('Parametro -H --host: '+parametros.pHost)
     print('Parametro -U --user: '+parametros.pUser)
@@ -89,7 +89,15 @@ if parametros.debug:
     print('Password codificado: '+password)
     print('IP do Equipamento: '+r1[0]['mc_unitconninfo_ip_adrs'])
     print('Número do tronco: '+r1[0]['mc_siteinfo_site_name'])
+    print('Status do sistema: '+str(r1[0]['systemstatus_insous']))
     print('Status do serviço: '+str(r1[0]['linestatus_insous']))
-else:
-    print(str(r1[0]['linestatus_insous']))
 
+if parametros.pComando:
+    if parametros.pComando == 'systemstatus':
+        print(str(r1[0]['systemstatus_insous']))
+    elif parametros.pComando == 'linestatus':
+        print(str(r1[0]['linestatus_insous']))
+    elif parametros.pComando == 'siteinfo':
+        print(str(r1[0]['mc_siteinfo_site_name']))
+    else:
+        print('Parametro não reconhecido')
