@@ -45,11 +45,11 @@ def exception_handler(exception_type, exception, traceback, debug_hook=sys.excep
         print('%s: %s' % (exception_type.__name__, exception))
 sys.excepthook = exception_handler
 
-def notificaZabbix(zhost,key,msg):
+def notificaZabbix(zhost,msg):
     packet = [
-        ZabbixMetric(zhost,'NS8188X.'+key,msg)
+        ZabbixMetric(zhost,'NS8188X.status',msg)
     ]
-    result = ZabbixSender(zabbix_server='167.86.82.141',zabbix_port=10051,socket_wrapper=lambda sock:ssl.wrap_socket(sock)).send(packet)
+    result = ZabbixSender(zabbix_server='167.86.82.141',zabbix_port=10051).send(packet)
 
 # Recebe parametros
 parser_parametros = argparse.ArgumentParser(description='Verificação de Link Status nos equipamentos KX-NS8188X')
@@ -57,7 +57,6 @@ parser_parametros.add_argument('-H','--host', action='store',dest='pHost',requir
 parser_parametros.add_argument('-Z','--zhost', action='store',dest='pHostZabbix',required=True,help='Hostname no Zabbix')
 parser_parametros.add_argument('-U','--user', action='store',dest='pUser',required=True,help='Usuário do equipamento KX-NS8188X a ser monitorado')
 parser_parametros.add_argument('-P','--password', action='store',dest='pPassword',required=True,help='Password do equipamento KX-NS8188X a ser monitorado')
-parser_parametros.add_argument('-C','--comando', action='store',dest='pComando',required=False, default='linestatus', help='Comando a ser executado. Disponíveis: systemstatus,linestatus, siteinfo')
 parser_parametros.add_argument('--debug',action='store_true',required=False,help='Habilida o traceback do Python para debugar erros.')
 parametros = parser_parametros.parse_args()
 
@@ -89,8 +88,6 @@ def obtemStatusNS8188X():
     # Faz o logout
     s.get(url+'/WebMC/users/logout', verify=False)
 
-    r1 = json.dumps(response.text)
-
     if parametros.debug:
         print('Parametro -H --host: '+parametros.pHost)
         print('Parametro -Z --zhost: '+parametros.pHostZabbix)
@@ -98,33 +95,10 @@ def obtemStatusNS8188X():
         print('Parametro -P --password: '+parametros.pPassword)
         print('Usuário codificado: '+user)
         print('Password codificado: '+password)
-        print('IP do Equipamento: '+r1['mc_unitconninfo_ip_adrs'])
-        print('Número do tronco: '+r1['mc_siteinfo_site_name'])
-        print('Status do sistema: '+str(r1['systemstatus_insous']))
-        print('Status do serviço: '+str(r1['linestatus_insous']))
-    return r1
 
+    return response.text
 
-if parametros.pComando:
-    if parametros.pComando == 'status':
-        r2 = obtemStatusNS8188X()
-        if parametros.debug:
-            print(r2)
-        notificaZabbix(parametros.pHostZabbix,parametros.pComando,r2)
-    elif parametros.pComando == 'systemstatus':
-        r2 = obtemStatusNS8188X()['systemstatus_insous']
-        if parametros.debug:
-            print(r2)
-        notificaZabbix(parametros.pHostZabbix,parametros.pComando,r2)
-    elif parametros.pComando == 'linestatus':
-        r2 = obtemStatusNS8188X()['linestatus_insous']
-        if parametros.debug:
-            print(r2)
-        notificaZabbix(parametros.pHostZabbix,parametros.pComando,r2)
-    elif parametros.pComando == 'siteinfo':
-        r2 = obtemStatusNS8188X()['mc_siteinfo_site_name']
-        if parametros.debug:
-            print(r2)
-        notificaZabbix(parametros.pHostZabbix,parametros.pComando,str(r2))
-    else:
-        print('Parametro não reconhecido')
+response = obtemStatusNS8188X()
+if parametros.debug:    
+    print(response)
+notificaZabbix(parametros.pHostZabbix,response)
