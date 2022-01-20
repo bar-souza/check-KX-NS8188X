@@ -8,7 +8,7 @@ import argparse
 
 # Traduz lib de encryption da panasonic para usarmos na autenticação do
 import js2py
-eval_res, tempfile = js2py.run_file("panasonic_encryption.js")
+eval_res, tempfile = js2py.run_file("/etc/zabbix/zabbix_agent2.d/scripts/panasonic_encryption.js")
 
 from pyzabbix import ZabbixMetric, ZabbixSender
 
