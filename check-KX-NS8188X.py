@@ -6,10 +6,11 @@ import json
 import sys
 import argparse
 
-# Importa e traduz lib de encryption da panasonic para usarmos na autenticação do
+# Traduz lib de encryption da panasonic para usarmos na autenticação do
 import js2py
-from temp import *  
-js2py.translate_file("panasonic_encryption.js", "temp.py")
+eval_res, tempfile = js2py.run_file("panasonic_encryption.js")
+
+from pyzabbix import ZabbixMetric, ZabbixSender
 
 #Códigos de status possíveis
 # //SYSTEM STATUS
@@ -44,9 +45,16 @@ def exception_handler(exception_type, exception, traceback, debug_hook=sys.excep
         print('%s: %s' % (exception_type.__name__, exception))
 sys.excepthook = exception_handler
 
+def notificaZabbix(zhost,key,msg):
+    packet = [
+        ZabbixMetric(zhost,'KX8188X.'+key,msg)
+    ]
+    result = ZabbixSender(use_config=True).send(packet)
+
 # Recebe parametros
 parser_parametros = argparse.ArgumentParser(description='Verificação de Link Status nos equipamentos KX-NS8188X')
 parser_parametros.add_argument('-H','--host', action='store',dest='pHost',required=True,help='Endereço do equipamento KX-NS8188X a ser monitorado')
+parser_parametros.add_argument('-Z','--zhost', action='store',dest='pHostZabbix',required=True,help='Hostname no Zabbix')
 parser_parametros.add_argument('-U','--user', action='store',dest='pUser',required=True,help='Usuário do equipamento KX-NS8188X a ser monitorado')
 parser_parametros.add_argument('-P','--password', action='store',dest='pPassword',required=True,help='Password do equipamento KX-NS8188X a ser monitorado')
 parser_parametros.add_argument('-C','--comando', action='store',dest='pComando',required=False, default='linestatus', help='Comando a ser executado. Disponíveis: systemstatus,linestatus, siteinfo')
@@ -55,8 +63,8 @@ parametros = parser_parametros.parse_args()
 
 # Atribui parametros de entrada nas variaveis
 url = 'http://'+parametros.pHost
-user = temp.EncryptPassword(parametros.pUser)
-password = temp.EncryptPassword(parametros.pPassword)
+user = tempfile.EncryptPassword(parametros.pUser)
+password = tempfile.EncryptPassword(parametros.pPassword)
 
 # Parametro que retorna o status do equipamento
 params = (
@@ -83,6 +91,7 @@ s.get(url+'/WebMC/users/logout', verify=False)
 r1 = json.loads(response.text)
 if parametros.debug:
     print('Parametro -H --host: '+parametros.pHost)
+    print('Parametro -Z --zhost: '+parametros.pHostZabbix)
     print('Parametro -U --user: '+parametros.pUser)
     print('Parametro -P --password: '+parametros.pPassword)
     print('Usuário codificado: '+user)
@@ -94,10 +103,10 @@ if parametros.debug:
 
 if parametros.pComando:
     if parametros.pComando == 'systemstatus':
-        print(str(r1[0]['systemstatus_insous']))
+        notificaZabbix(parametros.pHostZabbix,parametros.pComando,r1[0]['systemstatus_insous'])
     elif parametros.pComando == 'linestatus':
-        print(str(r1[0]['linestatus_insous']))
+        notificaZabbix(parametros.pHostZabbix,parametros.pComando,r1[0]['linestatus_insous'])
     elif parametros.pComando == 'siteinfo':
-        print(str(r1[0]['mc_siteinfo_site_name']))
+        notificaZabbix(parametros.pHostZabbix,parametros.pComando,str(r1[0]['mc_siteinfo_site_name']))
     else:
         print('Parametro não reconhecido')
