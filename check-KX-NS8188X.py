@@ -5,7 +5,6 @@ import requests
 import json
 import sys
 import argparse
-import socket, ssl
 
 # Traduz lib de encryption da panasonic para usarmos na autenticação do
 import js2py
@@ -90,7 +89,7 @@ def obtemStatusNS8188X():
     # Faz o logout
     s.get(url+'/WebMC/users/logout', verify=False)
 
-    r1 = json.loads(response.text)
+    r1 = json.dumps(response.text)
 
     if parametros.debug:
         print('Parametro -H --host: '+parametros.pHost)
@@ -99,31 +98,31 @@ def obtemStatusNS8188X():
         print('Parametro -P --password: '+parametros.pPassword)
         print('Usuário codificado: '+user)
         print('Password codificado: '+password)
-        print('IP do Equipamento: '+r1[0]['mc_unitconninfo_ip_adrs'])
-        print('Número do tronco: '+r1[0]['mc_siteinfo_site_name'])
-        print('Status do sistema: '+str(r1[0]['systemstatus_insous']))
-        print('Status do serviço: '+str(r1[0]['linestatus_insous']))
+        print('IP do Equipamento: '+r1['mc_unitconninfo_ip_adrs'])
+        print('Número do tronco: '+r1['mc_siteinfo_site_name'])
+        print('Status do sistema: '+str(r1['systemstatus_insous']))
+        print('Status do serviço: '+str(r1['linestatus_insous']))
     return r1
 
 
 if parametros.pComando:
     if parametros.pComando == 'status':
-        r2 = obtemStatusNS8188X()[0]
+        r2 = obtemStatusNS8188X()
         if parametros.debug:
             print(r2)
         notificaZabbix(parametros.pHostZabbix,parametros.pComando,r2)
     elif parametros.pComando == 'systemstatus':
-        r2 = obtemStatusNS8188X()[0]['systemstatus_insous']
+        r2 = obtemStatusNS8188X()['systemstatus_insous']
         if parametros.debug:
             print(r2)
         notificaZabbix(parametros.pHostZabbix,parametros.pComando,r2)
     elif parametros.pComando == 'linestatus':
-        r2 = obtemStatusNS8188X()[0]['linestatus_insous']
+        r2 = obtemStatusNS8188X()['linestatus_insous']
         if parametros.debug:
             print(r2)
         notificaZabbix(parametros.pHostZabbix,parametros.pComando,r2)
     elif parametros.pComando == 'siteinfo':
-        r2 = obtemStatusNS8188X()[0]['mc_siteinfo_site_name']
+        r2 = obtemStatusNS8188X()['mc_siteinfo_site_name']
         if parametros.debug:
             print(r2)
         notificaZabbix(parametros.pHostZabbix,parametros.pComando,str(r2))
